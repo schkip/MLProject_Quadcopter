@@ -26,26 +26,23 @@ class Task():
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
 
-    def get_reward(self):
+    def get_reward(self):     
+        
         """Uses current pose of sim to return reward. """
-        reward = 1. - .07*(np.linalg.norm(self.sim.pose[:3] - self.target_pos))
-        if reward>1:
-            reward = 1
-        if reward<-1:
-            reward = -1
-        #penalty for crashing
-        # Check if done is true before the runtime finished
-        if self.sim.done and self.sim.runtime > self.sim.time:
-            reward = -50
-        #penalty for getting too close to the ground
-        min_height = 3.0
-        max_height = 30.0
-        if (np.linalg.norm(self.sim.pose[:3]) < min_height) == True:
-            reward = -4
-        if (np.linalg.norm(self.sim.pose[:3]) > max_height) == True:
-            reward = -4
+        
+        
+        """----best so far with good initial velocity---"""
+        #reward = 1.-.003*(abs(self.sim.pose[:3] - self.target_pos)).sum() #this was proposed
+    
+        #try height based from target
+        reward = 1 - 0.0067*abs(abs(self.sim.v[:2]).sum() - self.target_pos[:2].sum())
+        print('____')
+        print('reward')
+        print(reward)
+        
         return reward
-
+        
+        
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
         reward = 0

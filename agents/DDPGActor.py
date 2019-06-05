@@ -40,20 +40,21 @@ class Actor:
             kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
-        net = layers.Dropout(0.3)(net)
+        net = layers.Dropout(0.2)(net)
         
         net = layers.Dense(units=128, activation='relu',
             kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
-        net = layers.Dropout(0.4)(net)
+        net = layers.Dropout(0.2)(net)
 
         net = layers.Dense(units=32, activation='relu',
             kernel_regularizer=regularizers.l2(0.01), activity_regularizer=regularizers.l1(0.01))(net)
         net = layers.BatchNormalization()(net)
         net = layers.Activation('relu')(net)
         net = layers.Dropout(0.2)(net)
-
+        
+        
         # Add final output layer with sigmoid activation
         raw_actions = layers.Dense(units=self.action_size, activation='sigmoid',
             name='raw_actions')(net)

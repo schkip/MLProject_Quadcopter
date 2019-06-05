@@ -1,0 +1,589 @@
+Trial_notes for teaching quadcopter to fly!
+
+Steve Winnall - Udacity NanoDegree 2019
+
+Note that there were more trials even before debugging, trying less than 50 epochs to tune items and check for syntax errors etc.
+The trials below refer to "experiments" eg. where a ML variable was changed, or the actor/critic/agent structure was altered or the reward algo changed
+
+Some initial debugging!
+- syntax errors
+- use of spaces and tabs 
+- had forgotten to import some libraries
+- incorrect calling of methods
+- really dumb - importing numpy as py rather than np (I used to use py)
+- incorrect indexing of labels (appending from 1 not 0)
+- forgetting to initialise all parameters of the task.sim()
+
+trial1
+first iteration after debugging, ran system through 500 trials.
+had an error with max/min/current score.
+peak reward was about 150 which was still much better then the nominal case (2.5)
+
+trial2
+second iteration of 100 episodes only
+changed min/max score
+changed reward function to not be scaled as the difference in task.py
+nominal case reward is -8 approx
+connection to kernel hang - restart
+at episode 100 score -281 (best 22, worst -5340)
+looks like min/max/best/worst is now working
+
+trial3
+still maintain at 100 episodes for now
+adjust reward scaling to be the order of the  (task.py)
+score about 80, didnt fluctuate much maybe insufficient reward magnitude
+
+trial4
+increased the reward magnitude (.05)
+changed the mission to see if this was having an effect (initial height 20m, target height 40m)
+also not sure what the quadcopter is doing!
+created comments of x, y, z positions to check every 50 trials
+position went from 10 to 50
+
+trial5 
+didnt still appear that the quadcopter was learning and it appeared that z position was always 0.
+ran only 100 trials
+
+trial6
+went back to start 0,0,0 position and target 0,0,10
+initial pose based reward function
+
+trial7 
+looked therough the physics sim, realised there might be benefit in applying some initial conditions that were non-zero
+applied 1 as the vertical velocity
+
+trial8 
+still velocity is 0, there is a negative z-velocity.
+try increasing the reward and initial velocities
+also staurated the reward at +/-1
+
+trial9
+increased the z velocity
+increased the reward
+
+trial10
+changed the reward function - the higher the reward for the higher the quadcopter can go
+ie a function of z position
+
+trial11
+had some issues with scaling of the reward function (dimensions)
+
+trial12
+used the correct column in the pose array for multiplication
+
+trials 13-18
+double checking some of the functions checking for initialisation etc. etc.
+
+trial19
+use a new reward function based on 1 - (zdiff)
+
+trial20
+only had 2 hidden layers of small size on the Critic action pathway.
+increased size and number of layers on the Critic() action pathway
+
+trial21
+had forgotten to explicitly initialise using Task() with everything except for init_pose
+
+trial22 -23
+adjusted some of the initial parameters
+
+trial24
+set non-z dimensions =0
+looks like initial velocity too high
+
+trial25
+got the copter to move downward as the target
+reduced the initial velocity
+showed some reduced reward at the start then increased reward over time (N<100)
+reward around 70
+
+trial 26-30
+target function from from 10m down to 7m
+adjusted some of the hyperparameters
+current hyperparameter set (mu, theta, sigma, gamma, tau)
+current = (0, 0.15, 0.2, 0.99,0.01)
+new set = (0.01, 0.3, 0.3,0.97, 0.03) #no real change
+new set2 = (0, 0.08, 0.1, 0.995, 0.02) #worse performance over time (high gamma)
+reverted back to original
+
+trial31
+added a penalty clause to the reward system (penalty -100 if crash (done) before runtime complete)
+seems to help but reward converges on -250
+
+trial32
+increased penalty from -100 to -500 -> woeful just bottomed out
+
+trial33
+change penalty clause to something less harsh eg. -50
+added another penalty clause for getting too close to the ground say -50 if less than 3m
+reduced the initial z velocity
+
+trial34
+changed the penalty amounts to smaller than -50
+
+trial35
+increased the number of epochs
+#fark! getting pretty close.  around epoch 200 the learning seems to stabilize then chaotic after this
+
+trial36
+increased tau parameter for convergence
+made it worse
+reverted to a lower value
+
+trial37
+reverted tau to a lower value
+changed the weights
+
+trial38
+yay! got it to hover finally this thing works
+after 100 epochs it converges.
+penatlies -30 for crash and -4 for getting too close
+
+
+trial39 
+changed the penalties to be lower (-1 in both cases)
+seemed to be better floating around 30 reward
+
+trial40
+changed the penalties to higher -20 and -5 (looked like it kept crashing still)
+then increased number of epochs
+this worked well in terms of reward and convergence but it went to a higher value of height
+
+trial41
+penalised for going too high
+
+trial42 
+adjusted number of epochs and penalties
+
+trial43
+submitted set
+remove debug info with comments
+adjusted numbers of epochs, rewards and added reflection info
+added plot title
+
+trial44,45
+checked for repeatability - score around 12
+
+FIRST SUBMISSION
+
+trial 46 
+updated reward function only per suggestion from the feedback
+not much changed - still has issues
+
+trial47 - removed the middle two layers and retest
+
+trial48
+went for 32-64-32 with L2 regularisation, normalisation, extra Dropout, and clipnorm on the backprop 
+
+trial49
+go for a simpler model - yuk
+
+trial50 
+reduce number of epochsback to the normal model
+
+trail51 
+just the first proposed feedback reward
+
+trial52
+went back to original model
+
+trial53 to 60 updates to the reward function and debugging
+
+trial60 
+reward = 1. - .07*(np.linalg.norm(self.sim.pose[:3] - self.target_pos))
+        
+        if reward>1:
+            reward = 1
+        if reward<-1:
+            reward = -1
+        
+        #penalty for crashing
+        # Check if done is true before the runtime finished
+        if self.sim.done and self.sim.runtime > self.sim.time:
+            reward = -50
+        #penalty for getting too close to the ground
+        min_height = 3.0
+        max_height = 30.0
+        if (np.linalg.norm(self.sim.pose[:3]) < min_height) == True:
+            reward = -4
+        if (np.linalg.norm(self.sim.pose[:3]) > max_height) == True:
+            reward = -4
+        
+        return reward
+		
+		
+trial 61
+have a larger positive reward rather than negative for the staying above ground
+this starts to hover but then keeps crashing.
+
+ #penalty for getting too close to the ground
+        min_height = 3.0
+        max_height = 30.0
+        if (np.linalg.norm(self.sim.pose[:3]) > min_height) == True:
+            reward = 4
+        if (np.linalg.norm(self.sim.pose[:3]) < max_height) == True:
+            reward = 4
+
+trial62
+keep the reward positive but reduce its magnitude (reward = 1)
+starts off by hovering but then crashes
+
+trial63
+keep reward positive and small (say 0.5)
+
+trial 64 
+reduce reward size even more
+
+trial 65
+changed min&max height
+increased reward magnitude (pos) for penalty too close to ground or roof
+
+trial 66
+increase reward even further
+
+
+trial 67
+increase initial velocity
+reduce reward back to previous value of 10
+
+trial 68
+increased scaling factor for position offset to 0.3 
+
+trail69
+then 0.5 
+
+trial70
+then 0.7
+
+trial71
+increase initial velocity - didnt hit the ground but overshoot (initial velocity 30)
+
+trial72
+initial velocity 8
+
+trial73
+update the reward function to include velocities etc.
+https://github.com/domangi/rl-quadcopter
+
+trial74
+used original reward but added velocity penalty
+
+trial75 
+added a height reward set for increased reward above the ground
+
+trial76 += the rewards
+
+trial77
+reduced reward magnitude to 1
+reduced initial position and velocity
+
+trial78
+reduced initial velocity
+increased initial height
+added velocity penalties
+
+trial79
+double checked the incentives.
+made sure that each incentive did not give too high a reward
+also the issue was the initial velocity was higher than the penalty velocity
+
+trial80
+still just tanking
+
+trial81
+started logging the rewards
+looks like it is going too fast
+got one to hover for a little while!
+
+trial82
+with logging
+increased benalty for too high abs speed
+
+trial83
+restricted to z velocities
+changed initial velocity
+
+trial85
+increased the magnitude of the z velocity reward envelope
+
+trial86
+removed issue with abs
+reduced the speed envelope
+this is looking better
+def get_reward(self):     
+        
+        """Uses current pose of sim to return reward. """
+        
+        #reward = 1.-.003*(abs(self.sim.pose[:3] - self.target_pos)).sum()
+        
+        
+        reward = (1. - .5*(np.linalg.norm(self.sim.pose[:3] - self.target_pos)) )
+        
+        #reward += -0.5*abs(self.sim.v).sum()
+        
+        if ((self.sim.v[:3]).sum() >2) == True:
+            reward += -5
+            print('V penalty for going too fast')
+            
+        if ((self.sim.v[:3]).sum() <-2) == True:
+            reward += -5
+            print('V penalty for going too negative fast')
+            
+        if (abs(self.sim.v[:3]).sum() >0.2) == True:
+            reward += 2
+            print('V reward for just right')     
+        
+        if (abs(self.sim.v).sum() >20) == True:
+            reward += -2
+            print('too high other velocities')
+        
+        
+        #penalty for crashing
+        # Check if done is true before the runtime finished
+        if self.sim.done and self.sim.runtime > self.sim.time:
+            reward = -1000
+        #penalty for getting too close to the ground
+        min_height = 1.0
+        max_height = 25.0
+        #if (np.linalg.norm(self.sim.pose[:3]) < min_height) == True:
+        #    reward = 0
+        if (np.linalg.norm(self.sim.pose[:3]) > 2) == True:
+            reward += 1
+            print('reward for >1m')
+            
+        if (np.linalg.norm(self.sim.pose[:3]) > 5) == True:
+            reward += 1
+            print('reward for >5m')
+                  
+        if (np.linalg.norm(self.sim.pose[:3]) > 8) == True:
+            reward += 1
+            print('reward for >8m')
+        if (np.linalg.norm(self.sim.pose[:3]) > 9) == True:
+            reward += 2
+            print('reward for >9m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 11) == True:
+            reward += 2
+            print('reward for <11m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 12) == True:
+            reward += 1
+            print('reward for <12m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 15) == True:
+            reward += 1
+            print('reward for <15m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 18) == True:
+            reward += 1
+            print('reward for <20m')
+        if (np.linalg.norm(self.sim.pose[:3]) > max_height) == True:
+            reward = 0
+            print('no reward for >25m')
+        
+        print('_____')
+        print(reward)
+        print('___')
+		
+		
+trial87 
+syntax error had >< and [:3] missing
+
+trial88-100
+update the reward values
+
+trial101
+update the values as penalties for higher height and rewards for lower
+
+trial102
+penalties for x and y offset
+penalties for going too high
+look to increase the penalties above the height and tighten x/y offset
+
+trial 103
+allow extra velocity
+
+trial104
+tighten the velocity and the window
+
+trial105-120
+parameter sensitvity analysis
+
+trial120
+use the original reward function
+still just crashing
+
+trial121
+update actor and critic with simpler models to test (32/64/32)
+
+trial122
+extended the epochs
+
+trial123
+updated reward function to "square up" around zero with tanh
+still f# crashes!!
+
+trial124
+revert back
+
+trial125
+revert to removing tanh function - this is good so far
+
+trial126 
+try just a reward proprtional to the height difference!
+
+trial127-135 different initial velocities and epoch lengths
+achieve a reward around 120
+
+trial136 updated the initial velocities and target height
+score 240
+
+trail137 increased the reward reduction rate to 0.007 - sweet!!!
+
+trial138 
+updated the number of epochs
+increased the decay rate
+score 225 - took off!
+
+trial 139
+score 245
+
+trial140 
+increased epochs
+changed value to opt
+changed initial velocity
+
+trial141
+reduced the initial velocity so that the quadcopter wasnt crashing
+
+trial142
+went back to the more complex NN to see if now that the function was better tuned we would get a better result
+reduced from 128 -> 64
+
+trial145
+slightly increased the initial velocity
+increased the epochs
+
+trial146
+Final submission
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+relevant code snippets that have been commented out & deleted
+
+task.py
+
+
+"""if ((self.sim.v[:3]).sum() >200.) == True:
+            reward += -1
+            print('V penalty for going too fast')
+            
+        if ((self.sim.v[:2]).sum() <-1.) == True:
+            reward += -1
+            print('V penalty for going too negative fast')
+            
+        if (abs(self.sim.v[:2]).sum() <0.5) == True:
+            reward += 1
+            print('V reward for just right')     
+        
+        if (abs(self.sim.v[:1]).sum() >0.2) == True:
+            reward += -1
+            print('too high other velocities')
+        if (abs(self.sim.v[:2]).sum() >0.2) == True:
+            reward += -1
+            print('too high other velocities')
+        
+        if (np.linalg.norm(self.sim.pose[:1]) > 0.05) == True:
+            reward += -1
+            print('penalty for x offset')
+        if (np.linalg.norm(self.sim.pose[:2]) > 0.05) == True:
+            reward += -1
+            print('penalty for y offset')
+                    
+        #penalty for crashing
+        # Check if done is true before the runtime finished
+        if self.sim.done and self.sim.runtime > self.sim.time:
+            reward += -10
+        #penalty for getting too close to the ground
+        min_height = 1.0
+        max_height = 50
+        #if (np.linalg.norm(self.sim.pose[:3]) < min_height) == True:
+        #    reward = 0
+        
+        if (np.linalg.norm(self.sim.pose[:3]) < 10.5) == True:
+            reward += -0.3
+            print('penalty for 11.5m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 12) == True:
+            reward += -0.5
+            print('penalty for <12m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 15) == True:
+            reward += -1
+            print('penalty for <15m')
+        if (np.linalg.norm(self.sim.pose[:3]) < 18) == True:
+            reward += -2
+            print('penalty for >20m')
+        if (np.linalg.norm(self.sim.pose[:3]) > max_height) == True:
+            reward += -3
+            print('penalty for over max_height')
+            
+            
+        if (np.linalg.norm(self.sim.pose[:3]) > 2) == True:
+            reward += 0.5
+            print('reward for >1m')
+            
+        if (np.linalg.norm(self.sim.pose[:3]) > 5) == True:
+            reward += 0.6
+            print('reward for >5m')
+                  
+        if (np.linalg.norm(self.sim.pose[:3]) > 8) == True:
+            reward += 0.9
+            print('reward for >8m')
+        if (np.linalg.norm(self.sim.pose[:3]) > 9.5) == True:
+            reward += 1
+            print('reward for >9.5m')
+        
+        
+        print('_____')
+        print(reward)
+        print('___')"""
+		
+		
+DDPGcritic.py
+"""# Add hidden layer(s) for state pathway
+        size_multiplicator = 1
+        net_states = layers.Dense(units=size_multiplicator*32, activation='relu')(states)
+        net_states = layers.Dense(units=size_multiplicator*64, activation='relu')(net_states)
+
+        # Add hidden layer(s) for action pathway
+        net_actions = layers.Dense(units=size_multiplicator*32, activation='relu')(actions)
+        net_actions = layers.Dense(units=size_multiplicator*64, activation='relu')(net_actions)"""
+		
+DDPGactor.py
+"""size_multiplicator = 1
+        net = layers.Dense(units=size_multiplicator*32, activation='relu')(states)
+        net = layers.Dense(units=size_multiplicator*64, activation='relu')(net)
+        net = layers.Dense(units=size_multiplicator*32, activation='relu')(net)"""
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
